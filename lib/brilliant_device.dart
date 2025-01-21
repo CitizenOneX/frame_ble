@@ -5,8 +5,6 @@ import 'dart:typed_data';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:logging/logging.dart';
 
-// TODO should be able to remove dependency on brilliant_bluetooth.dart
-import 'brilliant_bluetooth.dart';
 import 'brilliant_bluetooth_exception.dart';
 import 'brilliant_connection_state.dart';
 
@@ -32,8 +30,7 @@ class BrilliantDevice {
   // to enable reconnect()
   String get uuid => device.remoteId.str;
 
-  // TODO looks like it should return a Stream of BrilliantConnectionState
-  Stream<BrilliantDevice> get connectionState {
+  Stream<BrilliantConnectionState> get connectionState {
     // changed to only listen for connectionState data coming from the Frame device rather than all events from all devices as before
     return device.connectionState
         .where((event) =>
@@ -44,26 +41,12 @@ class BrilliantDevice {
         .asyncMap((event) async {
       if (event == BluetoothConnectionState.connected) {
         _log.info("Connection state stream: Connected");
-        try {
-          return await BrilliantBluetooth.enableServices(device);
-        } catch (error) {
-          _log.warning("Connection state stream: Invalid due to $error");
-          return Future.error(BrilliantBluetoothException(error.toString()));
-        }
+        return BrilliantConnectionState.connected;
       }
-      _log.info(
-          "Connection state stream: Disconnected due to ${device.disconnectReason!.description}");
-      // Note: automatic reconnection isn't suitable for all cases, so it might
-      // be better to leave this up to the sdk user to specify. iOS appears to
-      // use FBP's native autoconnect, so if Android behaviour would change then
-      // iOS probably should as well
-      // if (Platform.isAndroid) {
-      //   event.device.connect(timeout: const Duration(days: 365));
-      // }
-      return BrilliantDevice(
-        state: BrilliantConnectionState.disconnected,
-        device: device,
-      );
+      else {
+        _log.info("Connection state stream: Disconnected");
+        return BrilliantConnectionState.disconnected;
+      }
     });
   }
 
