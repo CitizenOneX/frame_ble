@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:frame_ble/brilliant_bluetooth.dart';
+import 'package:frame_ble/brilliant_device.dart';
 
 void main() {
   runApp(const MyApp());
@@ -56,8 +58,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  BrilliantDevice? _frame;
 
-  void _incrementCounter() {
+  void _incrementCounter() async {
+
+    // connect to Frame and display the counter, then disconnect
+    await _showCounterOnFrame();
+
     setState(() {
       // This call to setState tells the Flutter framework that something has
       // changed in this State, which causes it to rerun the build method below
@@ -66,6 +73,31 @@ class _MyHomePageState extends State<MyHomePage> {
       // called again, and so nothing would appear to happen.
       _counter++;
     });
+  }
+
+  Future<void> _showCounterOnFrame() async {
+    // connect to Frame the first time
+    if (_frame == null) {
+
+      // request permission to use Bluetooth
+      await BrilliantBluetooth.requestPermission();
+
+      // look for a Frame and connect to it
+      final scannedFrame = await BrilliantBluetooth.scan().first;
+      _frame = await BrilliantBluetooth.connect(scannedFrame);
+      // short delay to allow the connection to complete
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      print('Found Frame: $_frame');
+
+      // send a break signal to stop any running Lua main loop
+      await _frame!.sendBreakSignal();
+      // short delay to allow the break to complete
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    // send the counter to Frame for display
+    await _frame!.sendString('frame.display.text("Hello, World! ($_counter)", 1, 1) frame.display.show()', awaitResponse: false);
   }
 
   @override
