@@ -1,0 +1,4 @@
+enum BrilliantConnectionState {
+  connected,
+  disconnected,
+}
