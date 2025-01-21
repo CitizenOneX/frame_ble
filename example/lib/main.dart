@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frame_ble/brilliant_bluetooth.dart';
-import 'package:frame_ble/brilliant_device.dart';
+import 'package:frame_ble/frame_ble.dart';
 
 void main() {
   runApp(const MyApp());
