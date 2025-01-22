@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frame_ble/frame_ble.dart';
+import 'package:logging/logging.dart';
 
 void main() {
   runApp(const MyApp());
@@ -59,6 +60,14 @@ class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   BrilliantDevice? _frame;
 
+  _MyHomePageState() {
+    Logger.root.level = Level.FINE;
+    Logger.root.onRecord.listen((record) {
+      debugPrint(
+          '${record.level.name}: [${record.loggerName}] ${record.time}: ${record.message}');
+    });
+  }
+
   void _incrementCounter() async {
 
     // connect to Frame and display the counter, then disconnect
@@ -79,24 +88,48 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_frame == null) {
 
       // request permission to use Bluetooth
-      await BrilliantBluetooth.requestPermission();
+      try {
+        await BrilliantBluetooth.requestPermission();
+      } catch (e) {
+        print('Error requesting permission to use Bluetooth: $e');
+        return;
+      }
 
       // look for a Frame and connect to it
-      final scannedFrame = await BrilliantBluetooth.scan().first;
-      _frame = await BrilliantBluetooth.connect(scannedFrame);
-      // short delay to allow the connection to complete
-      await Future.delayed(const Duration(milliseconds: 100));
+      BrilliantScannedDevice? scannedFrame;
+      try {
+        scannedFrame = await BrilliantBluetooth.scan().first;
+      } catch (e) {
+        print('Error scanning for Frame: $e');
+        return;
+      }
 
-      print('Found Frame: $_frame');
+      try {
+        // connect to the scanned Frame
+        _frame = await BrilliantBluetooth.connect(scannedFrame);
+
+        print('Found Frame: $_frame');
+      }
+      catch (e) {
+        print('Error connecting to Frame: $e');
+        return;
+      }
 
       // send a break signal to stop any running Lua main loop
       await _frame!.sendBreakSignal();
-      // short delay to allow the break to complete
-      await Future.delayed(const Duration(milliseconds: 100));
     }
 
     // send the counter to Frame for display
-    await _frame!.sendString('frame.display.text("Hello, World! ($_counter)", 1, 1) frame.display.show()', awaitResponse: false);
+    if (await _frame?.connectionState.first == BrilliantConnectionState.connected) {
+      await _frame!.sendString(
+        'frame.display.text("Hello, World! ($_counter)", 1, 1) frame.display.show()',
+        awaitResponse: false
+      );
+    }
+    else {
+      print('Frame is not connected');
+      _frame = null;
+    }
   }
 
   @override

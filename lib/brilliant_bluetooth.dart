@@ -172,6 +172,10 @@ class BrilliantBluetooth {
       }
     }
 
+    // TODO ugly hack: need to work out what to await here to ensure the Frame is ready
+    // Don't let BrilliantBluetooth.connect complete until the Frame is ready
+    await Future.delayed(const Duration(milliseconds: 100));
+
     if (finalDevice.txChannel != null && finalDevice.rxChannel != null) {
       finalDevice.state = BrilliantConnectionState.connected;
       return finalDevice;

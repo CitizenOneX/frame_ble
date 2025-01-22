@@ -87,19 +87,20 @@ class BrilliantDevice {
         'frame.display.bitmap(1,1,4,2,15,"\\xFF") frame.display.show()',
         awaitResponse: false,
         log: false);
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 200));
   }
 
   Future<void> sendBreakSignal() async {
     _log.info("Sending break signal");
     await sendString("\x03", awaitResponse: false, log: false);
-    await Future.delayed(const Duration(milliseconds: 100));
+    // short delay to allow the break to complete on Frame before sending Lua commands
+    await Future.delayed(const Duration(milliseconds: 200));
   }
 
   Future<void> sendResetSignal() async {
     _log.info("Sending reset signal");
     await sendString("\x04", awaitResponse: false, log: false);
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 200));
   }
 
   Future<String?> sendString(
