@@ -14,6 +14,8 @@ class BrilliantBluetooth {
 
   static Future<void> requestPermission() async {
     try {
+      // make sure the adapter is ready (iOS in particular)
+      await FlutterBluePlus.adapterState.where((val) => val == BluetoothAdapterState.on).first;
       await FlutterBluePlus.startScan();
       await FlutterBluePlus.stopScan();
     } catch (error) {
@@ -24,8 +26,10 @@ class BrilliantBluetooth {
 
   static Stream<BrilliantScannedDevice> scan() async* {
     try {
-      _log.info("Starting to scan for devices");
+      // make sure the adapter is ready (iOS in particular)
+      await FlutterBluePlus.adapterState.where((val) => val == BluetoothAdapterState.on).first;
 
+      _log.info("Starting to scan for devices");
       await FlutterBluePlus.startScan(
         withServices: [
           Guid('7a230001-5475-a6a4-654c-8431f6ad49c4'),
