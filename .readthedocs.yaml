@@ -7,9 +7,9 @@ build:
   commands:
     - git clone --depth=1 https://github.com/flutter/flutter.git -b stable
     - export FLUTTER_PATH=`pwd`/flutter/bin
-    - "$FLUTTER_PATH/flutter" doctor -v
-    - "$FLUTTER_PATH/flutter" pub get
-    - "$FLUTTER_PATH/dart" doc .
+    - $FLUTTER_PATH/flutter doctor -v
+    - $FLUTTER_PATH/flutter pub get
+    - $FLUTTER_PATH/dart doc .
     - mv doc/api _build/html
 
 sphinx:
