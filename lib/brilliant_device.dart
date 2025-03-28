@@ -187,7 +187,7 @@ class BrilliantDevice {
   }
 
   /// Sends a typed message as a series of messages to Frame as chunks marked by
-  /// [0x01 (dataFlag), messageFlag & 0xFF, {first packet: length(Uint16)}, payload(chunked)]
+  /// `[0x01 (dataFlag), messageFlag & 0xFF, {first packet: length(Uint16)}, payload(chunked)]`
   /// until all data in the payload is sent. Payload data cannot exceed 65535 bytes in length.
   /// Can be received by a corresponding Lua function on Frame.
   Future<void> sendMessage(int msgCode, Uint8List payload) async {

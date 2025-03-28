@@ -1,3 +1,4 @@
+/// Low level Bluetooth LE library for Brilliant Labs Frame
 library frame_ble;
 
 export 'brilliant_bluetooth.dart';
