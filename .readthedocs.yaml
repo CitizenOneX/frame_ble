@@ -6,12 +6,12 @@ build:
     python: "3.11"
   commands:
     - git clone --depth=1 https://github.com/flutter/flutter.git -b stable
-    - export FLUTTER_PATH=`pwd`/flutter/bin
-    - echo "FLUTTER_PATH: $FLUTTER_PATH"
-    - $FLUTTER_PATH/flutter doctor -v
-    - $FLUTTER_PATH/flutter pub get
-    - $FLUTTER_PATH/dart doc .
-    - mv doc/api _build/html
+    - "export FLUTTER_PATH=`pwd`/flutter/bin"
+    - "echo FLUTTER_PATH: $FLUTTER_PATH"
+    - "$FLUTTER_PATH/flutter doctor -v"
+    - "$FLUTTER_PATH/flutter pub get"
+    - "$FLUTTER_PATH/dart doc ."
+    - "mv doc/api _build/html"
 
 sphinx:
   configuration: doc/api/index.html
