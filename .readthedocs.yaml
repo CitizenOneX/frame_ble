@@ -1,0 +1,19 @@
+version: 2
+
+build:
+  os: ubuntu-latest
+  tools:
+    python: "3.11"
+  commands:
+    - git clone --depth=1 https://github.com/flutter/flutter.git -b stable
+    - export PATH="$PATH:`pwd`/flutter/bin"
+    - flutter doctor -v
+    - dart pub get
+    - dart doc .
+    - mv doc/api _build/html
+
+sphinx:
+  configuration: doc/api/index.html  # Point to the generated index.html
+
+formats:
+  - htmlzip
