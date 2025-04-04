@@ -14,5 +14,5 @@ Low level BLE communication for the [Brilliant Labs Frame](https://brilliant.xyz
 
 ## See Also
 
-* `frame_msg`
-* `simple_frame_app`
+* [`frame_msg`](https://pub.dev/packages/frame_msg): Application-level library for passing rich objects between a host program and Frame, such as images, streamed audio, IMU data and rasterized text.
+* [`simple_frame_app`](https://pub.dev/packages/simple_frame_app) and its many example applications in [GitHub](https://github.com/CitizenOneX?tab=repositories) for demonstrations of [`frame_msg`](https://pub.dev/packages/frame_msg) being used by that framework.
