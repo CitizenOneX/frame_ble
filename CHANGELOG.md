@@ -1,3 +1,7 @@
+## 1.0.2
+
+* Docs: updated package README
+
 ## 1.0.1
 
 * added an await for adapterState to be on before attempting a scan, on iOS bluetooth startup can be a bit slower
