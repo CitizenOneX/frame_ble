@@ -1,8 +1,7 @@
-/// Low level Bluetooth LE library for Brilliant Labs Frame
+/// Low level Bluetooth LE library helpers for Brilliant Labs Frame.
+/// Provides Frame-specific command encoding, data parsing, and protocol handling
+/// assuming the application manages the BLE connection using flutter_blue_plus.
 library frame_ble;
 
-export 'brilliant_bluetooth.dart';
-export 'brilliant_bluetooth_exception.dart';
-export 'brilliant_connection_state.dart';
-export 'brilliant_device.dart';
-export 'brilliant_scanned_device.dart';
+// Export the BLE implementation for the Frame.
+export 'frame_ble_impl.dart';

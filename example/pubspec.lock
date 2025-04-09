@@ -95,7 +95,7 @@ packages:
     source: sdk
     version: "0.0.0"
   flutter_blue_plus:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: flutter_blue_plus
       sha256: "6dd2b572b3e392aadd7f3ab125657af83deefdb02d8c069e60b13ebd0e09b67e"
@@ -174,7 +174,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.0.0"
+    version: "1.0.2"
   leak_tracker:
     dependency: transitive
     description:
@@ -208,7 +208,7 @@ packages:
     source: hosted
     version: "3.0.0"
   logging:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: logging
       sha256: c8245ada5f1717ed44271ed1c26b8ce85ca3228fd2ffdb75468ab01979309d61

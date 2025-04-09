@@ -1,60 +1,107 @@
-
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:logging/logging.dart';
 
-import 'brilliant_bluetooth_exception.dart';
-import 'brilliant_connection_state.dart';
+final _log = Logger("FrameBle");
 
-final _log = Logger("Bluetooth");
+// --- FrameBle Class ---
+class FrameBle {
+  static final Guid serviceUuid = Guid('7a230001-5475-a6a4-654c-8431f6ad49c4');
+  static final Guid txCharUuid = Guid('7a230002-5475-a6a4-654c-8431f6ad49c4');
+  static final Guid rxCharUuid = Guid('7a230003-5475-a6a4-654c-8431f6ad49c4');
 
-class BrilliantDevice {
+  final BluetoothDevice device;
+  late final BluetoothCharacteristic txChannel;
+  late final BluetoothCharacteristic rxChannel;
+  late final int maxStringLength;
+  late final int maxDataLength;
 
-  BluetoothDevice device;
-  BrilliantConnectionState state;
-  int? maxStringLength;
-  int? maxDataLength;
+  // Private constructor pattern to force async initialization
+  FrameBle._(this.device, this.txChannel, this.rxChannel, this.maxStringLength, this.maxDataLength);
 
-  BluetoothCharacteristic? txChannel;
-  BluetoothCharacteristic? rxChannel;
+  /// Creates and initializes a [FrameBle] from the given [BluetoothDevice].
+  ///
+  /// Assumes the device is connected but services have not been discovered yet.
+  /// This method handles MTU negotiation, service discovery, and characteristic setup.
+  /// Throws an error if Frame services/characteristics are not found or notifications cannot be enabled.
+  static Future<FrameBle> fromDevice(BluetoothDevice device) async {
+    _log.fine("Initializing FrameBle for ${device.remoteId}...");
 
-  BrilliantDevice({
-    required this.state,
-    required this.device,
-    this.maxStringLength,
-    this.maxDataLength,
-  });
-
-  // to enable reconnect()
-  String get uuid => device.remoteId.str;
-
-  Stream<BrilliantConnectionState> get connectionState {
-    // changed to only listen for connectionState data coming from the Frame device rather than all events from all devices as before
-    return device.connectionState
-        .where((event) =>
-            event == BluetoothConnectionState.connected ||
-            (event == BluetoothConnectionState.disconnected &&
-                device.disconnectReason != null &&
-                device.disconnectReason!.code != 23789258))
-        .asyncMap((event) async {
-      if (event == BluetoothConnectionState.connected) {
-        _log.info("Connection state stream: Connected");
-        return BrilliantConnectionState.connected;
+    // 1. Request MTU
+    if (Platform.isAndroid) {
+      try {
+        await device.requestMtu(512);
+         _log.fine("MTU requested");
+      } catch (e) {
+         _log.warning("MTU request failed: $e");
       }
-      else {
-        _log.info("Connection state stream: Disconnected");
-        return BrilliantConnectionState.disconnected;
+    }
+
+    // 2. Find Characteristics
+    BluetoothCharacteristic? txChar;
+    BluetoothCharacteristic? rxChar;
+
+    // Note: We must call discoverServices after every re-connection
+    List<BluetoothService> services = await device.discoverServices();
+
+    for (var service in services) {
+      if (service.serviceUuid == serviceUuid) {
+        _log.fine("Found Frame service");
+        for (var characteristic in service.characteristics) {
+          if (characteristic.characteristicUuid == txCharUuid) {
+            _log.fine("Found Frame TX characteristic");
+            txChar = characteristic;
+          } else if (characteristic.characteristicUuid == rxCharUuid) {
+            _log.fine("Found Frame RX characteristic");
+            rxChar = characteristic;
+          }
+        }
+        break; // Found Frame service, no need to check others
       }
-    });
+    }
+
+    if (txChar == null || rxChar == null) {
+       _log.severe("Frame TX or RX characteristic not found!");
+      throw Exception("Frame TX or RX characteristic not found on device ${device.remoteId}");
+    }
+
+    // 3. Enable Rx Notifications
+    try {
+        if (!rxChar.isNotifying) {
+             await rxChar.setNotifyValue(true);
+             _log.fine("Enabled RX notifications");
+        } else {
+             _log.fine("RX notifications already enabled");
+        }
+
+    } catch (e) {
+       _log.severe("Failed to enable RX notifications: $e");
+       throw Exception("Could not enable notifications on RX characteristic: $e");
+    }
+
+    // 4. Calculate Max Lengths
+    // Use device.mtuNow after MTU negotiation and connection
+    int mtu = device.mtuNow;
+    int maxStringLen = mtu - 3;
+    int maxDataLen = mtu - 4;
+    _log.fine("MTU: $mtu, Max String Length: $maxStringLen, Max Data Length: $maxDataLen");
+
+    // 5. Delay to ensure the device is ready
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // 6. Create and return the instance
+    return FrameBle._(device, txChar, rxChar, maxStringLen, maxDataLen);
   }
 
   // logs each string message (messages without the 0x01 first byte) and provides a stream of the utf8-decoded strings
   // Lua error strings come through here too, so logging at info
   Stream<String> get stringResponse {
     // changed to only listen for data coming through the Frame's rx characteristic, not all attached devices as before
-    return rxChannel!.onValueReceived
+    return rxChannel.onValueReceived
         .where((event) => event[0] != 0x01)
         .map((event) {
       if (event[0] != 0x02) {
@@ -66,19 +113,12 @@ class BrilliantDevice {
 
   Stream<List<int>> get dataResponse {
     // changed to only listen for data coming through the Frame's rx characteristic, not all attached devices as before
-    return rxChannel!.onValueReceived
+    return rxChannel.onValueReceived
         .where((event) => event[0] == 0x01)
         .map((event) {
       _log.finest(() => "Received data: ${event.sublist(1)}");
       return event.sublist(1);
     });
-  }
-
-  Future<void> disconnect() async {
-    _log.info("Disconnecting");
-    try {
-      await device.disconnect();
-    } catch (_) {}
   }
 
   Future<void> clearDisplay() async {
@@ -113,28 +153,24 @@ class BrilliantDevice {
         _log.info(() => "Sending string: $string");
       }
 
-      if (state != BrilliantConnectionState.connected) {
-        throw ("Device is not connected");
-      }
-
-      if (string.length > maxStringLength!) {
+      if (string.length > maxStringLength) {
         throw ("Payload exceeds allowed length of $maxStringLength");
       }
 
-      await txChannel!.write(utf8.encode(string), withoutResponse: true);
+      await txChannel.write(utf8.encode(string), withoutResponse: true);
 
       if (awaitResponse == false) {
         return null;
       }
 
-      final response = await rxChannel!.onValueReceived
+      final response = await rxChannel.onValueReceived
           .timeout(const Duration(seconds: 10))
           .first;
 
       return utf8.decode(response);
     } catch (error) {
       _log.warning("Couldn't send string. $error");
-      return Future.error(BrilliantBluetoothException(error.toString()));
+      return Future.error(Exception(error.toString()));
     }
   }
 
@@ -143,20 +179,16 @@ class BrilliantDevice {
       _log.finer(() => "Sending ${data.length} bytes of plain data");
       _log.finest(data);
 
-      if (state != BrilliantConnectionState.connected) {
-        throw ("Device is not connected");
-      }
-
-      if (data.length > maxDataLength!) {
+      if (data.length > maxDataLength) {
         throw ("Payload exceeds allowed length of $maxDataLength");
       }
 
       var finalData = data.toList()..insert(0, 0x01);
 
-      await txChannel!.write(finalData, withoutResponse: true);
+      await txChannel.write(finalData, withoutResponse: true);
     } catch (error) {
       _log.warning("Couldn't send data. $error");
-      return Future.error(BrilliantBluetoothException(error.toString()));
+      return Future.error(Exception(error.toString()));
     }
   }
 
@@ -166,12 +198,8 @@ class BrilliantDevice {
       _log.finer(() => "Sending ${data.length - 1} bytes of plain data");
       _log.finest(data);
 
-      if (state != BrilliantConnectionState.connected) {
-        throw ("Device is not connected");
-      }
-
-      if (data.length > maxDataLength! + 1) {
-        throw ("Payload exceeds allowed length of ${maxDataLength! + 1}");
+      if (data.length > maxDataLength + 1) {
+        throw ("Payload exceeds allowed length of ${maxDataLength + 1}");
       }
 
       if (data[0] != 0x01) {
@@ -179,10 +207,10 @@ class BrilliantDevice {
       }
 
       // TODO check throughput difference using withoutResponse: false
-      await txChannel!.write(data, withoutResponse: false);
+      await txChannel.write(data, withoutResponse: false);
     } catch (error) {
       _log.warning("Couldn't send data. $error");
-      return Future.error(BrilliantBluetoothException(error.toString()));
+      return Future.error(Exception(error.toString()));
     }
   }
 
@@ -193,8 +221,7 @@ class BrilliantDevice {
   Future<void> sendMessage(int msgCode, Uint8List payload) async {
 
     if (payload.length > 65535) {
-      return Future.error(const BrilliantBluetoothException(
-          'Payload length exceeds 65535 bytes'));
+      return Future.error(Exception('Payload length exceeds 65535 bytes'));
     }
 
     int lengthMsb = payload.length >> 8;
@@ -202,12 +229,12 @@ class BrilliantDevice {
     int sentBytes = 0;
     bool firstPacket = true;
     int bytesRemaining = payload.length;
-    int chunksize = maxDataLength! - 1;
+    int chunksize = maxDataLength - 1;
 
     // the full sized packet buffer to prepare. If we are sending a full sized packet,
     // set packetToSend to point to packetBuffer. If we are sending a smaller (final) packet,
     // instead point packetToSend to a range within packetBuffer
-    Uint8List packetBuffer = Uint8List(maxDataLength! + 1);
+    Uint8List packetBuffer = Uint8List(maxDataLength + 1);
     Uint8List packetToSend = packetBuffer;
     _log.fine(() => 'sendMessage: payload size: ${payload.length}');
 
@@ -309,7 +336,7 @@ class BrilliantDevice {
       }
 
       int index = 0;
-      int chunkSize = maxStringLength! - 22;
+      int chunkSize = maxStringLength - 22;
 
       while (index < file.length) {
         // Don't go over the end of the string
@@ -345,7 +372,7 @@ class BrilliantDevice {
           awaitResponse: true);
     } catch (error) {
       _log.warning("Couldn't upload script. $error");
-      return Future.error(BrilliantBluetoothException(error.toString()));
+      return Future.error(Exception(error.toString()));
     }
   }
 }

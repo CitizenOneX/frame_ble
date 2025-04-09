@@ -1,4 +1,0 @@
-enum BrilliantConnectionState {
-  connected,
-  disconnected,
-}
