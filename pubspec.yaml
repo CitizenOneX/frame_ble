@@ -9,6 +9,7 @@ environment:
   flutter: ">=1.17.0"
 
 dependencies:
+  archive: ^4.0.5
   flutter:
     sdk: flutter
   flutter_blue_plus: ^1.35.0
