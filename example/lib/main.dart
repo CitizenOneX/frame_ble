@@ -69,6 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _incrementCounter() async {
+      _counter++;
 
     // connect to Frame and display the counter, then disconnect
     await _showCounterOnFrame();
@@ -79,7 +80,6 @@ class _MyHomePageState extends State<MyHomePage> {
       // so that the display can reflect the updated values. If we changed
       // _counter without calling setState(), then the build method would not be
       // called again, and so nothing would appear to happen.
-      _counter++;
     });
   }
 
@@ -120,7 +120,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     // send the counter to Frame for display
-    if (await _frame?.connectionState.first == BrilliantConnectionState.connected) {
+    if (_frame?.state == BrilliantConnectionState.connected) {
       await _frame!.sendString(
         'frame.display.text("Hello, World! ($_counter)", 1, 1) frame.display.show()',
         awaitResponse: false
