@@ -114,8 +114,8 @@ class BrilliantBluetooth {
       await device.connect(
         // note: changed so that sdk users (apps) directly specify reconnect behaviour
         // otherwise there are spurious reconnects even after programmatically disconnecting
-        timeout: const Duration(seconds: 5),
-        autoConnect: false,
+        timeout: const Duration(days: 365),
+        autoConnect: Platform.isIOS ? true : false,
         mtu: null,
       );
 
