@@ -1,3 +1,8 @@
+## 2.0.0
+
+* Breaking: Added reconnect logic. Applications that need to connect to Frame when it becomes visible (e.g. wake on tap) need reconnect logic - the Noa app is an example. `BrilliantDevice.connectionState` changed its signature from `Stream<BrilliantConnectionState>` to `Stream<BrilliantDevice>` as part of this change.
+* Logging of available memory on Frame during script uploads was removed
+
 ## 1.0.2
 
 * Docs: updated package README
