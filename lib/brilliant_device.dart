@@ -1,8 +1,10 @@
 
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:frame_ble/brilliant_bluetooth.dart';
 import 'package:logging/logging.dart';
 
 import 'brilliant_bluetooth_exception.dart';
@@ -30,25 +32,35 @@ class BrilliantDevice {
   // to enable reconnect()
   String get uuid => device.remoteId.str;
 
-  Stream<BrilliantConnectionState> get connectionState {
-    // changed to only listen for connectionState data coming from the Frame device rather than all events from all devices as before
-    return device.connectionState
+  Stream<BrilliantDevice> get connectionState {
+    return FlutterBluePlus.events.onConnectionStateChanged
         .where((event) =>
-            event == BluetoothConnectionState.connected ||
-            (event == BluetoothConnectionState.disconnected &&
-                device.disconnectReason != null &&
-                device.disconnectReason!.code != 23789258))
+            event.connectionState == BluetoothConnectionState.connected ||
+            (event.connectionState == BluetoothConnectionState.disconnected &&
+                event.device.disconnectReason != null &&
+                event.device.disconnectReason!.code != 23789258))
         .asyncMap((event) async {
-      if (event == BluetoothConnectionState.connected) {
+      if (event.connectionState == BluetoothConnectionState.connected) {
         _log.info("Connection state stream: Connected");
-        return BrilliantConnectionState.connected;
+        try {
+          return await BrilliantBluetooth.enableServices(event.device);
+        } catch (error) {
+          _log.warning("Connection state stream: Invalid due to $error");
+          return Future.error(BrilliantBluetoothException(error.toString()));
+        }
       }
-      else {
-        _log.info("Connection state stream: Disconnected");
-        return BrilliantConnectionState.disconnected;
+      _log.info(
+          "Connection state stream: Disconnected due to ${event.device.disconnectReason!.description}");
+      if (Platform.isAndroid) {
+        event.device.connect(timeout: const Duration(days: 365));
       }
+      return BrilliantDevice(
+        state: BrilliantConnectionState.disconnected,
+        device: event.device,
+      );
     });
   }
+
 
   // logs each string message (messages without the 0x01 first byte) and provides a stream of the utf8-decoded strings
   // Lua error strings come through here too, so logging at info
@@ -288,9 +300,9 @@ class BrilliantDevice {
     try {
       _log.info("Uploading script: $fileName");
       // TODO temporarily observe memory usage
-      await sendString(
-          'print("Frame Mem: " .. tostring(collectgarbage("count")))',
-          awaitResponse: true);
+      // await sendString(
+      //     'print("Frame Mem: " .. tostring(collectgarbage("count")))',
+      //     awaitResponse: true);
 
       String file = fileContents;
 
@@ -340,9 +352,9 @@ class BrilliantDevice {
       }
 
       // TODO temporarily observe memory usage
-      await sendString(
-          'print("Frame Mem: " .. tostring(collectgarbage("count")))',
-          awaitResponse: true);
+      // await sendString(
+      //     'print("Frame Mem: " .. tostring(collectgarbage("count")))',
+      //     awaitResponse: true);
     } catch (error) {
       _log.warning("Couldn't upload script. $error");
       return Future.error(BrilliantBluetoothException(error.toString()));
