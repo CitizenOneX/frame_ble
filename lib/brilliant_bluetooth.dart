@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:frame_ble/brilliant_dfu_device.dart';
 import 'package:logging/logging.dart';
 
 import 'brilliant_bluetooth_exception.dart';
@@ -174,6 +175,11 @@ class BrilliantBluetooth {
           }
         }
       }
+       if (service.serviceUuid == Guid('fe59')) {
+        _log.fine("Found DFU service");
+        finalDevice.state = BrilliantConnectionState.dfuConnected;
+        return finalDevice;
+       }
     }
 
     // TODO ugly hack: need to work out what to await here to ensure the Frame is ready
