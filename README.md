@@ -11,6 +11,7 @@ Low level BLE communication for the [Brilliant Labs Frame](https://brilliant.xyz
 * sends data to frameside data receive handler for processing
 * uploads Lua files to run on Frame
 * subscribes to data streams from Frame
+* performs over-the-air (OTA) Device Firmware Update (DFU)
 
 ## See Also
 

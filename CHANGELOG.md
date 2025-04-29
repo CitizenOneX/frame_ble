@@ -1,3 +1,7 @@
+## 3.0.0
+
+* Added `BrilliantDfuDevice` class and associated `BrilliantConnectionState` to support OTA device firmware update (DFU)
+
 ## 2.0.0
 
 * Breaking: Added reconnect logic. Applications that need to connect to Frame when it becomes visible (e.g. wake on tap) need reconnect logic - the Noa app is an example. `BrilliantDevice.connectionState` changed its signature from `Stream<BrilliantConnectionState>` to `Stream<BrilliantDevice>` as part of this change.
