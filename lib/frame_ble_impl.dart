@@ -97,6 +97,12 @@ class FrameBle {
     return FrameBle._(device, txChar, rxChar, maxStringLen, maxDataLen);
   }
 
+  /// Checks if the given [ScanResult] is a Frame device.
+  /// This is done by checking if the device's advertisement data contains the Frame service UUID.
+  static bool isFrame(ScanResult result) {
+    return result.advertisementData.serviceUuids.contains(serviceUuid);
+  }
+
   // logs each string message (messages without the 0x01 first byte) and provides a stream of the utf8-decoded strings
   // Lua error strings come through here too, so logging at info
   Stream<String> get stringResponse {

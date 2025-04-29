@@ -96,6 +96,12 @@ class FrameDfu {
     return FrameDfu._(device, dfuControlChar, dfuPacketChar);
   }
 
+  /// Checks if the given [ScanResult] is a Frame Update device.
+  /// This is done by checking if the device's advertisement data contains the Frame service UUID.
+  static bool isFrame(ScanResult result) {
+    return result.advertisementData.serviceUuids.contains(serviceUuid) && result.advertisementData.advName == "Frame Update";
+  }
+
   Stream<double> updateFirmware(String filePath) async* {
     try {
       yield 0;
