@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:frame_ble/brilliant_dfu_device.dart';
 import 'package:logging/logging.dart';
 
 import 'brilliant_bluetooth_exception.dart';
